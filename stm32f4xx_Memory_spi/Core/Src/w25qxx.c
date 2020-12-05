@@ -145,7 +145,6 @@ void W25qxx_WaitForWriteEnd( void )
 bool W25qxx_Init( SPI_HandleTypeDef * _spi, GPIO_TypeDef * GPIOx,
         uint16_t GPIO_Pin )
 {
-    w25qxx.Lock = 1;
 
     uint32_t id;
 
@@ -226,15 +225,11 @@ bool W25qxx_Init( SPI_HandleTypeDef * _spi, GPIO_TypeDef * GPIOx,
     W25qxx_ReadStatusRegister( 2 );
     W25qxx_ReadStatusRegister( 3 );
 
-    w25qxx.Lock = 0;
     return true;
 }
 //###################################################################################################################
 void W25qxx_EraseChip( void )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
 
     W25qxx_WriteEnable();
     CS_ENABLE();
@@ -242,14 +237,10 @@ void W25qxx_EraseChip( void )
     CS_DESABLE();
     W25qxx_WaitForWriteEnd();
 
-    w25qxx.Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_EraseSector( uint32_t SectorAddr )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
 
     W25qxx_WaitForWriteEnd();
     SectorAddr = SectorAddr * w25qxx.SectorSize;
@@ -263,14 +254,10 @@ void W25qxx_EraseSector( uint32_t SectorAddr )
     CS_DESABLE();
     W25qxx_WaitForWriteEnd();
 
-    w25qxx.Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_EraseBlock( uint32_t BlockAddr )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
 
     W25qxx_WaitForWriteEnd();
     BlockAddr = BlockAddr * w25qxx.SectorSize * 16;
@@ -284,7 +271,6 @@ void W25qxx_EraseBlock( uint32_t BlockAddr )
     CS_DESABLE();
     W25qxx_WaitForWriteEnd();
 
-    w25qxx.Lock = 0;
 }
 //###################################################################################################################
 uint32_t W25qxx_PageToSector( uint32_t PageAddress )
@@ -315,9 +301,7 @@ uint32_t W25qxx_BlockToPage( uint32_t BlockAddress )
 bool W25qxx_IsEmptyPage( uint32_t Page_Address, uint32_t OffsetInByte,
         uint32_t NumByteToCheck_up_to_PageSize )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
+
     if ( ( ( NumByteToCheck_up_to_PageSize + OffsetInByte ) > w25qxx.PageSize )
             || ( NumByteToCheck_up_to_PageSize == 0 ) ) NumByteToCheck_up_to_PageSize =
             w25qxx.PageSize - OffsetInByte;
@@ -340,7 +324,10 @@ bool W25qxx_IsEmptyPage( uint32_t Page_Address, uint32_t OffsetInByte,
         CS_DESABLE();
         for ( uint8_t x = 0; x < sizeof( pBuffer ); x++ )
         {
-            if ( pBuffer[x] != 0xFF ) goto NOT_EMPTY;
+            if ( pBuffer[x] != 0xFF )
+            {
+                return false;
+            }
         }
     }
     if ( ( w25qxx.PageSize + OffsetInByte ) % sizeof( pBuffer ) != 0 )
@@ -359,24 +346,21 @@ bool W25qxx_IsEmptyPage( uint32_t Page_Address, uint32_t OffsetInByte,
             W25qxx_Spi( 0 );
             HAL_SPI_Receive( spi, pBuffer, 1, 100 );
             CS_DESABLE();
-            if ( pBuffer[0] != 0xFF ) goto NOT_EMPTY;
+            if ( pBuffer[0] != 0xFF )
+            {
+                return false;
+            }
         }
     }
 
-    w25qxx.Lock = 0;
     return true;
-    NOT_EMPTY:
 
-    w25qxx.Lock = 0;
-    return false;
 }
 //###################################################################################################################
 bool W25qxx_IsEmptySector( uint32_t Sector_Address, uint32_t OffsetInByte,
         uint32_t NumByteToCheck_up_to_SectorSize )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
+
     if ( ( NumByteToCheck_up_to_SectorSize > w25qxx.SectorSize )
             || ( NumByteToCheck_up_to_SectorSize == 0 ) ) NumByteToCheck_up_to_SectorSize =
             w25qxx.SectorSize;
@@ -399,7 +383,10 @@ bool W25qxx_IsEmptySector( uint32_t Sector_Address, uint32_t OffsetInByte,
         CS_DESABLE();
         for ( uint8_t x = 0; x < sizeof( pBuffer ); x++ )
         {
-            if ( pBuffer[x] != 0xFF ) goto NOT_EMPTY;
+            if ( pBuffer[x] != 0xFF )
+            {
+                return false;
+            }
         }
     }
     if ( ( w25qxx.SectorSize + OffsetInByte ) % sizeof( pBuffer ) != 0 )
@@ -418,24 +405,19 @@ bool W25qxx_IsEmptySector( uint32_t Sector_Address, uint32_t OffsetInByte,
             W25qxx_Spi( 0 );
             HAL_SPI_Receive( spi, pBuffer, 1, 100 );
             CS_DESABLE();
-            if ( pBuffer[0] != 0xFF ) goto NOT_EMPTY;
+            if ( pBuffer[0] != 0xFF )
+            {
+                return false;
+            }
         }
     }
 
-    w25qxx.Lock = 0;
     return true;
-    NOT_EMPTY:
-
-    w25qxx.Lock = 0;
-    return false;
 }
 //###################################################################################################################
 bool W25qxx_IsEmptyBlock( uint32_t Block_Address, uint32_t OffsetInByte,
         uint32_t NumByteToCheck_up_to_BlockSize )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
     if ( ( NumByteToCheck_up_to_BlockSize > w25qxx.BlockSize )
             || ( NumByteToCheck_up_to_BlockSize == 0 ) ) NumByteToCheck_up_to_BlockSize =
             w25qxx.BlockSize;
@@ -458,7 +440,10 @@ bool W25qxx_IsEmptyBlock( uint32_t Block_Address, uint32_t OffsetInByte,
         CS_DESABLE();
         for ( uint8_t x = 0; x < sizeof( pBuffer ); x++ )
         {
-            if ( pBuffer[x] != 0xFF ) goto NOT_EMPTY;
+            if ( pBuffer[x] != 0xFF )
+            {
+                return false;
+            }
         }
     }
     if ( ( w25qxx.BlockSize + OffsetInByte ) % sizeof( pBuffer ) != 0 )
@@ -477,23 +462,19 @@ bool W25qxx_IsEmptyBlock( uint32_t Block_Address, uint32_t OffsetInByte,
             W25qxx_Spi( 0 );
             HAL_SPI_Receive( spi, pBuffer, 1, 100 );
             CS_DESABLE();
-            if ( pBuffer[0] != 0xFF ) goto NOT_EMPTY;
+            if ( pBuffer[0] != 0xFF )
+            {
+                return false;
+            }
         }
     }
 
-    w25qxx.Lock = 0;
     return true;
-    NOT_EMPTY:
 
-    w25qxx.Lock = 0;
-    return false;
 }
 //###################################################################################################################
 void W25qxx_WriteByte( uint8_t pBuffer, uint32_t WriteAddr_inBytes )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
 
     W25qxx_WaitForWriteEnd();
     W25qxx_WriteEnable();
@@ -508,15 +489,11 @@ void W25qxx_WriteByte( uint8_t pBuffer, uint32_t WriteAddr_inBytes )
     CS_DESABLE();
     W25qxx_WaitForWriteEnd();
 
-    w25qxx.Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_WritePage( uint8_t * pBuffer, uint32_t Page_Address,
         uint32_t OffsetInByte, uint32_t NumByteToWrite_up_to_PageSize )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
     if ( ( ( NumByteToWrite_up_to_PageSize + OffsetInByte ) > w25qxx.PageSize )
             || ( NumByteToWrite_up_to_PageSize == 0 ) ) NumByteToWrite_up_to_PageSize =
             w25qxx.PageSize - OffsetInByte;
@@ -536,7 +513,6 @@ void W25qxx_WritePage( uint8_t * pBuffer, uint32_t Page_Address,
     HAL_SPI_Transmit( spi, pBuffer, NumByteToWrite_up_to_PageSize, 100 );
     CS_DESABLE();
     W25qxx_WaitForWriteEnd();
-    w25qxx.Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_WriteSector( uint8_t * pBuffer, uint32_t Sector_Address,
@@ -606,9 +582,6 @@ void W25qxx_WriteBlock( uint8_t * pBuffer, uint32_t Block_Address,
 //###################################################################################################################
 void W25qxx_ReadByte( uint8_t * pBuffer, uint32_t Bytes_Address )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
 
     CS_ENABLE();
     W25qxx_Spi( 0x0B );
@@ -621,15 +594,11 @@ void W25qxx_ReadByte( uint8_t * pBuffer, uint32_t Bytes_Address )
     *pBuffer = W25qxx_Spi( 0 );
     CS_DESABLE();
 
-    w25qxx.Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_ReadBytes( uint8_t * pBuffer, uint32_t ReadAddr,
         uint32_t NumByteToRead )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
 
     CS_ENABLE();
     W25qxx_Spi( 0x0B );
@@ -641,15 +610,11 @@ void W25qxx_ReadBytes( uint8_t * pBuffer, uint32_t ReadAddr,
     HAL_SPI_Receive( spi, pBuffer, NumByteToRead, 2000 );
     CS_DESABLE();
 
-    w25qxx.Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_ReadPage( uint8_t * pBuffer, uint32_t Page_Address,
         uint32_t OffsetInByte, uint32_t NumByteToRead_up_to_PageSize )
 {
-    while ( w25qxx.Lock == 1 )
-        W25qxx_Delay();
-    w25qxx.Lock = 1;
     if ( ( NumByteToRead_up_to_PageSize > w25qxx.PageSize )
             || ( NumByteToRead_up_to_PageSize == 0 ) ) NumByteToRead_up_to_PageSize =
             w25qxx.PageSize;
@@ -668,7 +633,6 @@ void W25qxx_ReadPage( uint8_t * pBuffer, uint32_t Page_Address,
     HAL_SPI_Receive( spi, pBuffer, NumByteToRead_up_to_PageSize, 100 );
     CS_DESABLE();
 
-    w25qxx.Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_ReadSector( uint8_t * pBuffer, uint32_t Sector_Address,
